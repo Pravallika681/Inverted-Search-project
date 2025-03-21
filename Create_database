@@ -1,1 +1,92 @@
+#include "inverted_search.h"
+void create_database(Flist *f_head, Wlist *head[])
+{
+    //traverse through file linked list 
+    while(f_head)
+    {
+        read_datafile(f_head , head , f_head->file_name);
+        printf("Succesfull : creation of database for %s\n",f_head->file_name);
+        f_head = f_head->link;
+    }
+}
+//read contents of a file 
+Wlist * read_datafile(Flist *file, Wlist *head[], char *filename)
+{
+    char fname[FNAME_SIZE]="";
+    strcpy(fname ,filename);
+    int flag;
+    char word[WORD_SIZE];
+    //open the file in read mode
+    FILE *fptr = fopen(filename , "r");
 
+    //declare array to store word
+
+    while(fscanf(fptr , "%s" , word) != EOF)
+    {
+        flag=1;
+        //index 
+
+        int index = tolower(word[0]) % 97;
+        //other than alphabets 
+        if(!(index >= 0 && index <= 25))
+                index = 26;
+
+        //check words are repeated or not 
+
+        if(head[index] != NULL)
+        {
+            Wlist *temp = head[index];
+            while(temp)
+            {
+                //compare the new word with each node words 
+                if(!strcmp(temp->word , word))
+                {
+                    update_word_count(&temp ,filename);
+                    flag = 0;
+                    break;
+                }
+                temp=temp->link;
+            }
+        }       
+        if(flag == 1)
+        {
+            //if words are not repeated
+            insert_at_last(&head[index] , word);
+        }
+    }
+
+}
+int update_word_count(Wlist ** head, char * file_name)
+{
+    Ltable *temp = (*head)->Tlink;
+
+    // Traverse the Ltable list to check if the word is repeated in the same file
+    while (temp)
+    {
+        // If the word is found in the same file, increment the word count
+        if (strcmp(temp->file_name, file_name) == 0)
+        {
+            temp->word_count++;  // Increment word count for this file
+            return SUCCESS;     
+        }
+        temp = temp->table_link; // Move to the next file node in the list
+    }
+
+    // If the word is not found in the same file, create a new Ltable node
+    Ltable *new_node = malloc(sizeof(Ltable));
+    if (new_node == NULL)
+    {
+        return FAILURE;
+    }
+
+    // Initialize the new Ltable node with the file name and word count
+    strcpy(new_node->file_name, file_name);
+    new_node->word_count = 1;    
+    new_node->table_link = (*head)->Tlink;  // Link new node to the current Ltable list
+    (*head)->Tlink = new_node;              // Update the Tlink to point to the new node
+
+    // Increment the file count in the Wlist for the current word
+    (*head)->file_count++;
+
+    return SUCCESS;
+}
